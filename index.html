@@ -3,41 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geostories — Tourist Safety & Spatial Map</title>
+    <title>Geostories — Tourist Safety & Spatial Platform</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; background: #0f172a; color: #fff; }
-        header { background: #1e293b; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
-        #map { height: 80vh; width: 100%; }
-        .sos-btn { background: #ef4444; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; }
+        header { background: #1e293b; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+        .logo { font-size: 1.4rem; font-weight: bold; color: #38bdf8; }
+        #map { height: 75vh; width: 100%; z-index: 1; }
+        .controls { padding: 15px; background: #1e293b; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .btn { padding: 10px 18px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-location { background: #0284c7; color: white; }
+        .btn-sos { background: #ef4444; color: white; font-size: 1rem; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
+        .status-box { padding: 10px; text-align: center; background: #0f172a; font-size: 0.9rem; color: #94a3b8; }
     </style>
 </head>
 <body>
+
     <header>
-        <h2>Geostories Platform</h2>
-        <button class="sos-btn" onclick="triggerSOS()">🚨 TRIGGER SOS</button>
+        <div class="logo">🗺️ Geostories</div>
+        <button class="btn btn-sos" onclick="triggerSOS()">🚨 IMMEDIATE SOS</button>
     </header>
 
     <div id="map"></div>
 
+    <div class="controls">
+        <button class="btn btn-location" onclick="getUserLocation()">🎯 Track My Location</button>
+    </div>
+
+    <div class="status-box" id="status">Status: System Ready. Click 'Track My Location' to fetch GPS.</div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map').setView([13.0827, 80.2707], 13);
+        // Initialize Map centered at Chennai default
+        let defaultLat = 13.0827, defaultLng = 80.2707;
+        const map = L.map('map').setView([defaultLat, defaultLng], 12);
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        L.circle([13.0827, 80.2707], {
-            color: 'green',
-            fillColor: '#22c55e',
-            fillOpacity: 0.3,
-            radius: 1000
-        }).addTo(map).bindPopup("Safe Tourist Zone");
+        // Safe Tourist Zone (Green Circle)
+        const safeZone = L.circle([13.0827, 80.2707], {
+            color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.25, radius: 2000
+        }).addTo(map).bindPopup("<b>Verified Safe Tourist Corridor</b><br>24/7 Patrol Active.");
 
+        // High Risk / Restricted Danger Zone (Red Circle)
+        const dangerZone = L.circle([13.0400, 80.2400], {
+            color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.4, radius: 1200
+        }).addTo(map).bindPopup("<b>⚠️ Caution: High Incident Zone</b><br>Avoid late-night solo travel.");
+
+        let userMarker;
+
+        // Fetch User Live GPS Location
+        function getUserLocation() {
+            const statusBox = document.getElementById('status');
+            if ("geolocation" in navigator) {
+                statusBox.innerText = "Fetching live GPS coordinates...";
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        defaultLat = lat;
+                        defaultLng = lng;
+
+                        map.setView([lat, lng], 15);
+
+                        if (userMarker) { map.removeLayer(userMarker); }
+
+                        userMarker = L.marker([lat, lng]).addTo(map)
+                            .bindPopup("<b>📍 You Are Here</b>").openPopup();
+
+                        statusBox.innerText = `Location Locked: Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}`;
+                    },
+                    (error) => {
+                        statusBox.innerText = "GPS Error: Please enable location access on your browser.";
+                    }
+                );
+            } else {
+                statusBox.innerText = "Geolocation is not supported by your browser.";
+            }
+        }
+
+        // Trigger WhatsApp SOS Alert with Live Coordinates
         function triggerSOS() {
-            alert("Emergency Alert Sent! Live Location shared with Tourist Safety Incident Response Team.");
+            const sosMessage = `🚨 EMERGENCY SOS ALERT! 🚨\nI need immediate assistance.\nMy Live Location: https://www.google.com/maps?q=${defaultLat},${defaultLng}`;
+            const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(sosMessage)}`;
+            
+            alert("Emergency SOS Activated! Redirecting to dispatch coordinates...");
+            window.open(whatsappUrl, '_blank');
         }
     </script>
 </body>
 </html>
+
 
