@@ -3,99 +3,289 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geostories — Tourist Safety & Spatial Platform</title>
+    <title>Geostories — Smart Spatial Platform</title>
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
         body { background-color: #0f172a; color: #f8fafc; }
-        header { background: #1e293b; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
-        .logo { font-size: 1.4rem; font-weight: bold; color: #38bdf8; }
-        #map { height: 75vh; width: 100%; z-index: 1; }
-        .controls { padding: 15px; background: #1e293b; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-        .btn { padding: 10px 18px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-location { background: #0284c7; color: white; }
-        .btn-sos { background: #ef4444; color: white; font-size: 1rem; animation: pulse 2s infinite; }
+        header { background: #1e293b; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+        .logo { font-size: 1.3rem; font-weight: bold; color: #38bdf8; }
+        
+        .user-panel { display: flex; align-items: center; gap: 10px; background: #0f172a; padding: 4px 12px; border-radius: 20px; border: 1px solid #334155; font-size: 0.85rem; }
+        .xp-badge { background: #eab308; color: #000; font-weight: bold; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; }
+        
+        #map { height: 50vh; width: 100%; z-index: 1; }
+        
+        .dashboard { padding: 15px; background: #1e293b; display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 70px; }
+        .card { background: #0f172a; padding: 15px; border-radius: 10px; border: 1px solid #334155; }
+        
+        .btn { padding: 8px 14px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-sos { background: #ef4444; color: white; animation: pulse 2s infinite; }
+        .btn-location { background: #0284c7; color: white; width: 100%; margin-bottom: 10px; }
+        .btn-login { background: #22c55e; color: white; }
+        .btn-save { background: #38bdf8; color: #0f172a; margin-top: 10px; width: 100%; }
+
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
-        .status-box { padding: 10px; text-align: center; background: #0f172a; font-size: 0.9rem; color: #94a3b8; }
+
+        .reward-tag { display: inline-block; background: #334155; color: #94a3b8; padding: 4px 10px; border-radius: 6px; margin: 4px; font-size: 0.8rem; }
+        .reward-tag.unlocked { background: #8b5cf6; color: white; font-weight: bold; }
+
+        textarea { width: 100%; height: 70px; background: #1e293b; color: #fff; border: 1px solid #334155; border-radius: 6px; padding: 8px; margin-top: 8px; resize: none; }
+        .memory-item { background: #1e293b; padding: 10px; border-radius: 6px; border-left: 3px solid #38bdf8; margin-top: 8px; font-size: 0.85rem; }
+        .memory-date { font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; }
+
+        /* Floating AI Chatbot */
+        #chat-toggle-btn { position: fixed; bottom: 20px; right: 20px; z-index: 1000; background: #38bdf8; color: #0f172a; width: 55px; height: 55px; border-radius: 50%; font-size: 1.5rem; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+        .chat-container { position: fixed; bottom: 85px; right: 20px; width: 310px; height: 380px; background: #0f172a; border: 1px solid #334155; border-radius: 12px; z-index: 1000; display: none; flex-direction: column; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        .chat-header { background: #1e293b; padding: 10px 14px; font-weight: bold; color: #38bdf8; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+        .chat-messages { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; }
+        .msg { padding: 8px 12px; border-radius: 8px; max-width: 80%; }
+        .user-msg { background: #38bdf8; color: #0f172a; align-self: flex-end; }
+        .bot-msg { background: #1e293b; color: #f8fafc; border: 1px solid #334155; align-self: flex-start; }
+        .chat-input-area { display: flex; border-top: 1px solid #334155; background: #1e293b; }
+        .chat-input-area input { flex: 1; background: transparent; border: none; padding: 10px; color: #fff; outline: none; }
+        .chat-input-area button { background: #38bdf8; border: none; padding: 0 14px; font-weight: bold; cursor: pointer; color: #0f172a; }
     </style>
 </head>
 <body>
 
     <header>
         <div class="logo">🗺️ Geostories</div>
-        <button class="btn btn-sos" onclick="triggerSOS()">🚨 IMMEDIATE SOS</button>
+        <div class="user-panel">
+            <span id="user-name">Guest</span>
+            <span class="xp-badge" id="user-xp">⚡ 0 XP</span>
+            <button class="btn btn-login" id="auth-btn" onclick="toggleAuth()">Sign In</button>
+        </div>
+        <button class="btn btn-sos" onclick="triggerSOS()">🚨 SOS</button>
     </header>
 
     <div id="map"></div>
 
-    <div class="controls">
-        <button class="btn btn-location" onclick="getUserLocation()">🎯 Track My Location</button>
+    <div class="dashboard">
+        <!-- Live GPS Action -->
+        <button class="btn btn-location" onclick="getUserLocation()">🎯 Track My Live Location</button>
+
+        <!-- Selected Location Details & Weather -->
+        <div class="card">
+            <h3 style="color: #38bdf8; font-size: 1rem;">📍 Selected Location & Weather</h3>
+            <p id="place-info" style="margin-top: 6px; font-size: 0.9rem; color: #cbd5e1;">
+                Click anywhere on the map to view place details.
+            </p>
+            <p id="weather-info" style="margin-top: 4px; font-size: 0.85rem; color: #eab308;"></p>
+        </div>
+
+        <!-- Travel Notes -->
+        <div class="card">
+            <h3 style="color: #ec4899; font-size: 1rem;">📖 Travel Memory Notes</h3>
+            <textarea id="memory-input" placeholder="Write a memory about this location..."></textarea>
+            <button class="btn btn-save" onclick="saveMemory()">Save Memory (+20 XP)</button>
+
+            <h4 style="margin-top: 12px; color: #94a3b8; font-size: 0.85rem;">Saved Memories Log:</h4>
+            <div id="memories-list"></div>
+        </div>
+
+        <!-- Gamified Rewards -->
+        <div class="card">
+            <h3 style="color: #eab308; font-size: 1rem;">🏆 Travel Rewards & Badges</h3>
+            <div style="margin-top: 8px;" id="rewards-container">
+                <span class="reward-tag" id="badge-1">🔒 First Explorer</span>
+                <span class="reward-tag" id="badge-2">🔒 Wayfarer (3 Clicks)</span>
+                <span class="reward-tag" id="badge-3">🔒 Memory Keeper</span>
+            </div>
+        </div>
     </div>
 
-    <div class="status-box" id="status">Status: System Ready. Click 'Track My Location' to fetch GPS.</div>
+    <!-- AI Chatbot Toggle Button & Window -->
+    <button id="chat-toggle-btn" onclick="toggleChat()">🤖</button>
 
+    <div class="chat-container" id="chat-box">
+        <div class="chat-header">
+            <span>🤖 GeoBot AI Assistant</span>
+            <span style="cursor: pointer;" onclick="toggleChat()">✖</span>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <div class="msg bot-msg">Hello! I am GeoBot. Ask me about local tourist spots, safety tips, or food recommendations!</div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Ask AI travel guide..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+            <button onclick="sendChatMessage()">Send</button>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Initialize Map centered at Chennai default
-        let defaultLat = 13.0827, defaultLng = 80.2707;
-        const map = L.map('map').setView([defaultLat, defaultLng], 12);
+        // State Management
+        let currentUser = localStorage.getItem('geostories_user') || 'Guest';
+        let userXP = parseInt(localStorage.getItem('geostories_xp')) || 0;
+        let clickCount = parseInt(localStorage.getItem('geostories_clicks')) || 0;
+        let savedMemories = JSON.parse(localStorage.getItem('geostories_memories')) || [];
+        let currentLat = 13.0827, currentLng = 80.2707;
+        let currentSelectedPlace = "General Location";
+        let userMarker;
 
+        // Initialize Map
+        const map = L.map('map').setView([currentLat, currentLng], 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // Safe Tourist Zone (Green Circle)
-        const safeZone = L.circle([13.0827, 80.2707], {
-            color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.25, radius: 2000
-        }).addTo(map).bindPopup("<b>Verified Safe Tourist Corridor</b><br>24/7 Patrol Active.");
+        // Geofencing Zones (Safe - Green, Danger - Red)
+        L.circle([13.0827, 80.2707], { color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.2, radius: 2000 })
+            .addTo(map).bindPopup("<b>Verified Safe Tourist Zone</b>");
+        
+        L.circle([13.0400, 80.2400], { color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.35, radius: 1200 })
+            .addTo(map).bindPopup("<b>⚠️ High Risk Incident Corridor</b>");
 
-        // High Risk / Restricted Danger Zone (Red Circle)
-        const dangerZone = L.circle([13.0400, 80.2400], {
-            color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.4, radius: 1200
-        }).addTo(map).bindPopup("<b>⚠️ Caution: High Incident Zone</b><br>Avoid late-night solo travel.");
+        // Update Dashboard UI & Memories
+        function updateUI() {
+            document.getElementById('user-name').innerText = currentUser;
+            document.getElementById('user-xp').innerText = `⚡ ${userXP} XP`;
+            document.getElementById('auth-btn').innerText = currentUser === 'Guest' ? 'Sign In' : 'Sign Out';
+            
+            if(clickCount >= 1) document.getElementById('badge-1').classList.add('unlocked');
+            if(clickCount >= 3) document.getElementById('badge-2').classList.add('unlocked');
+            if(savedMemories.length >= 1) document.getElementById('badge-3').classList.add('unlocked');
 
-        let userMarker;
-
-        // Fetch User Live GPS Location
-        function getUserLocation() {
-            const statusBox = document.getElementById('status');
-            if ("geolocation" in navigator) {
-                statusBox.innerText = "Fetching live GPS coordinates...";
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        defaultLat = lat;
-                        defaultLng = lng;
-
-                        map.setView([lat, lng], 15);
-
-                        if (userMarker) { map.removeLayer(userMarker); }
-
-                        userMarker = L.marker([lat, lng]).addTo(map)
-                            .bindPopup("<b>📍 You Are Here</b>").openPopup();
-
-                        statusBox.innerText = `Location Locked: Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}`;
-                    },
-                    (error) => {
-                        statusBox.innerText = "GPS Error: Please enable location access on your browser.";
-                    }
-                );
+            const listContainer = document.getElementById('memories-list');
+            listContainer.innerHTML = '';
+            
+            if(savedMemories.length === 0) {
+                listContainer.innerHTML = `<p style="color: #64748b; font-size: 0.8rem; margin-top: 4px;">No travel memories saved yet.</p>`;
             } else {
-                statusBox.innerText = "Geolocation is not supported by your browser.";
+                savedMemories.forEach(mem => {
+                    listContainer.innerHTML += `
+                        <div class="memory-item">
+                            <div class="memory-date">📍 ${mem.place} | ${mem.date}</div>
+                            <div>"${mem.text}"</div>
+                        </div>
+                    `;
+                });
             }
         }
 
-        // Trigger WhatsApp SOS Alert with Live Coordinates
-        function triggerSOS() {
-            const sosMessage = `🚨 EMERGENCY SOS ALERT! 🚨\nI need immediate assistance.\nMy Live Location: https://www.google.com/maps?q=${defaultLat},${defaultLng}`;
-            const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(sosMessage)}`;
-            
-            alert("Emergency SOS Activated! Redirecting to dispatch coordinates...");
-            window.open(whatsappUrl, '_blank');
+        // Fetch Location Info & OpenSource Weather Data
+        map.on('click', function(e) {
+            currentLat = e.latlng.lat;
+            currentLng = e.latlng.lng;
+            document.getElementById('place-info').innerText = "Fetching location info...";
+            document.getElementById('weather-info').innerText = "Loading local weather...";
+
+            // Reverse Geocoding API
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentLat}&lon=${currentLng}`)
+                .then(res => res.json())
+                .then(data => {
+                    currentSelectedPlace = data.address.road || data.address.suburb || data.address.city || "Selected Location";
+                    document.getElementById('place-info').innerHTML = `<b>Selected Area:</b> ${data.display_name}`;
+                })
+                .catch(() => {
+                    currentSelectedPlace = `Coordinates (${currentLat.toFixed(2)}, ${currentLng.toFixed(2)})`;
+                    document.getElementById('place-info').innerText = currentSelectedPlace;
+                });
+
+            // Open-Meteo Weather API (Open Source)
+            fetch(`https://api.open-meteo.com/v1/forecast?latitude=${currentLat}&longitude=${currentLng}&current_weather=true`)
+                .then(res => res.json())
+                .then(wData => {
+                    const temp = wData.current_weather.temperature;
+                    document.getElementById('weather-info').innerText = `⛅ Weather: ${temp}°C | Wind: ${wData.current_weather.windspeed} km/h`;
+                })
+                .catch(() => {
+                    document.getElementById('weather-info').innerText = "⛅ Weather data unavailable.";
+                });
+
+            clickCount++;
+            userXP += 10;
+            localStorage.setItem('geostories_xp', userXP);
+            localStorage.setItem('geostories_clicks', clickCount);
+            updateUI();
+        });
+
+        // GPS Live Tracking
+        function getUserLocation() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    currentLat = position.coords.latitude;
+                    currentLng = position.coords.longitude;
+                    map.setView([currentLat, currentLng], 15);
+
+                    if (userMarker) map.removeLayer(userMarker);
+                    userMarker = L.marker([currentLat, currentLng]).addTo(map).bindPopup("<b>📍 You Are Here</b>").openPopup();
+                }, () => { alert("Please enable GPS location permission."); });
+            }
         }
+
+        // Memory Saver
+        function saveMemory() {
+            const noteText = document.getElementById('memory-input').value.trim();
+            if(!noteText) return alert("Please write a memory note first!");
+
+            savedMemories.unshift({
+                place: currentSelectedPlace,
+                text: noteText,
+                date: new Date().toLocaleDateString()
+            });
+            userXP += 20;
+
+            localStorage.setItem('geostories_memories', JSON.stringify(savedMemories));
+            localStorage.setItem('geostories_xp', userXP);
+
+            document.getElementById('memory-input').value = '';
+            updateUI();
+            alert("Memory Saved! +20 XP");
+        }
+
+        // Chatbot Controls
+        function toggleChat() {
+            const box = document.getElementById('chat-box');
+            box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            if(!msg) return;
+
+            const chatMessages = document.getElementById('chat-messages');
+            chatMessages.innerHTML += `<div class="msg user-msg">${msg}</div>`;
+            input.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            setTimeout(() => {
+                let botReply = `Exploring around ${currentSelectedPlace}? Stay safe and make sure to use the SOS panic button in emergencies!`;
+                if(msg.toLowerCase().includes('food') || msg.toLowerCase().includes('hotel')) {
+                    botReply = `You can explore popular local food joints and highly-rated restaurants near ${currentSelectedPlace}!`;
+                } else if(msg.toLowerCase().includes('safe') || msg.toLowerCase().includes('night')) {
+                    botReply = `For late-night travel around ${currentSelectedPlace}, stick to main roads and active safe zones.`;
+                }
+                chatMessages.innerHTML += `<div class="msg bot-msg">${botReply}</div>`;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 700);
+        }
+
+        // SOS WhatsApp Dispatch
+        function triggerSOS() {
+            const sosMessage = `🚨 EMERGENCY SOS ALERT! 🚨\nUser: ${currentUser}\nLive GPS Coordinates: https://www.google.com/maps?q=${currentLat},${currentLng}`;
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(sosMessage)}`, '_blank');
+        }
+
+        // Profile Toggle
+        function toggleAuth() {
+            if (currentUser === 'Guest') {
+                const name = prompt("Enter your Name:");
+                if(name) {
+                    currentUser = name;
+                    localStorage.setItem('geostories_user', currentUser);
+                }
+            } else {
+                currentUser = 'Guest';
+                localStorage.removeItem('geostories_user');
+            }
+            updateUI();
+        }
+
+        updateUI();
     </script>
 </body>
 </html>
-
-
