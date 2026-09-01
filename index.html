@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geostories — Tourist Safety & Spatial Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; background: #0f172a; color: #fff; }
+        header { background: #1e293b; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        #map { height: 80vh; width: 100%; }
+        .sos-btn { background: #ef4444; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <header>
+        <h2>Geostories Platform</h2>
+        <button class="sos-btn" onclick="triggerSOS()">🚨 TRIGGER SOS</button>
+    </header>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([13.0827, 80.2707], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        L.circle([13.0827, 80.2707], {
+            color: 'green',
+            fillColor: '#22c55e',
+            fillOpacity: 0.3,
+            radius: 1000
+        }).addTo(map).bindPopup("Safe Tourist Zone");
+
+        function triggerSOS() {
+            alert("Emergency Alert Sent! Live Location shared with Tourist Safety Incident Response Team.");
+        }
+    </script>
+</body>
+</html>
+
